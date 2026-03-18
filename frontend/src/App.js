@@ -882,9 +882,23 @@ const GoLivePage = () => {
 
   // Request camera/mic permissions on mount
   useEffect(() => {
-    requestMediaPermissions();
+    // Check if permissions already granted
+    const checkExistingPermissions = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        setLocalStream(stream);
+        setCameraReady(true);
+        setMicReady(true);
+      } catch (err) {
+        console.log("Waiting for user to enable camera/mic");
+      }
+    };
+    checkExistingPermissions();
+    
     return () => {
-      // Cleanup local stream when leaving
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
       }
