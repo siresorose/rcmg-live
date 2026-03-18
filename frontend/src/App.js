@@ -1047,7 +1047,7 @@ const GoLivePage = () => {
 // Watch Stream Page
 const WatchStreamPage = () => {
   const { id } = useParams();
-  const { user, token } = useAuth();
+  const { user, token, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [stream, setStream] = useState(null);
   const [livekitToken, setLivekitToken] = useState(null);
@@ -1057,6 +1057,7 @@ const WatchStreamPage = () => {
   const [showGiftPanel, setShowGiftPanel] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [comboAnimation, setComboAnimation] = useState(null);
 
   useEffect(() => {
     joinStream();
@@ -1126,7 +1127,7 @@ const WatchStreamPage = () => {
     if (!selectedGift || !user) return;
 
     try {
-      await axios.post(
+      const res = await axios.post(
         `${API}/gifts/send`,
         {
           gift_id: selectedGift.id,
@@ -1136,9 +1137,17 @@ const WatchStreamPage = () => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      
+      // Check for combo
+      if (res.data.combo) {
+        setComboAnimation(res.data.combo);
+        setTimeout(() => setComboAnimation(null), 3000);
+      }
+      
+      await refreshUser();
       setSelectedGift(null);
       setGiftQuantity(1);
-      setShowGiftPanel(false);
+      // Keep panel open for combo chains!
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to send gift");
     }
@@ -1199,7 +1208,7 @@ const WatchStreamPage = () => {
       </div>
 
       {/* Video area */}
-      <div className="pt-16 h-screen">
+      <div className="pt-16 h-screen relative">
         {livekitToken ? (
           <LiveKitRoom
             serverUrl={livekitToken.server_url}
@@ -1227,6 +1236,48 @@ const WatchStreamPage = () => {
             </div>
           </div>
         )}
+        
+        {/* Combo Animation Overlay */}
+        <AnimatePresence>
+          {comboAnimation && (
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              className="fixed inset-0 flex items-center justify-center pointer-events-none z-50"
+            >
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  rotate: [0, -5, 5, 0]
+                }}
+                transition={{ duration: 0.5, repeat: 2 }}
+                className="text-center"
+              >
+                <div className={`font-orbitron text-6xl md:text-8xl font-black mb-4 ${
+                  comboAnimation.combo_count >= 7 ? 'gradient-text-animated' : 
+                  comboAnimation.combo_count >= 5 ? 'text-accent-gold' :
+                  comboAnimation.combo_count >= 3 ? 'text-accent-purple' : 'text-secondary'
+                }`} style={{ textShadow: '0 0 40px currentColor' }}>
+                  x{comboAnimation.combo_count}
+                </div>
+                <div className="font-orbitron text-3xl md:text-5xl font-bold text-white" style={{ textShadow: '0 0 20px rgba(255,255,255,0.8)' }}>
+                  {comboAnimation.combo_name}
+                </div>
+                {comboAnimation.bonus_diamonds > 0 && (
+                  <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="mt-4 flex items-center justify-center gap-2 text-2xl text-accent-green font-bold"
+                  >
+                    <Diamond size={28} /> +{comboAnimation.bonus_diamonds} BONUS!
+                  </motion.div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Gift Panel */}
@@ -1284,11 +1335,16 @@ const WatchStreamPage = () => {
                       +
                     </button>
                   </div>
-                  <div className="flex-1 text-right">
-                    <span className="text-gray-400">Total: </span>
-                    <span className="text-secondary font-bold flex items-center gap-1 inline-flex">
-                      <Diamond size={16} /> {selectedGift.diamond_cost * giftQuantity}
-                    </span>
+                  <div className="flex-1">
+                    <div className="text-right">
+                      <span className="text-gray-400">Total: </span>
+                      <span className="text-secondary font-bold flex items-center gap-1 inline-flex">
+                        <Diamond size={16} /> {selectedGift.diamond_cost * giftQuantity}
+                      </span>
+                    </div>
+                    <p className="text-xs text-accent-purple text-right mt-1">
+                      Send rapidly for COMBO BONUS!
+                    </p>
                   </div>
                   <button 
                     onClick={sendGift}

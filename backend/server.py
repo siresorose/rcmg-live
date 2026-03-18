@@ -85,6 +85,13 @@ class SendGiftRequest(BaseModel):
     stream_id: Optional[str] = None
     quantity: int = 1
 
+class ComboGiftResponse(BaseModel):
+    combo_count: int
+    combo_multiplier: float
+    bonus_diamonds: int
+    combo_name: str
+    animation_type: str
+
 class TransactionResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
@@ -294,18 +301,37 @@ async def send_gift(request: SendGiftRequest, user: dict = Depends(get_current_u
     if not recipient:
         raise HTTPException(status_code=404, detail="Recipient not found")
     
+    # Check for combo gifts
+    combo_info = await check_and_update_combo(user["id"], request.recipient_id, request.gift_id, request.stream_id)
+    
+    # Calculate bonus from combo
+    bonus_diamonds = combo_info.get("bonus_diamonds", 0)
+    combo_multiplier = combo_info.get("combo_multiplier", 1.0)
+    
     # Deduct from sender
     await db.users.update_one(
         {"id": user["id"]},
         {"$inc": {"diamond_balance": -total_cost, "total_gifted": total_cost}}
     )
     
-    # Add 70% to recipient (30% platform fee)
-    recipient_amount = int(total_cost * 0.7)
+    # Add 70% to recipient (30% platform fee) + combo bonus split
+    base_recipient_amount = int(total_cost * 0.7)
+    recipient_bonus = int(bonus_diamonds * 0.5)  # 50% of bonus to streamer
+    sender_bonus = bonus_diamonds - recipient_bonus  # 50% to sender
+    
+    total_recipient_amount = base_recipient_amount + recipient_bonus
+    
     await db.users.update_one(
         {"id": request.recipient_id},
-        {"$inc": {"diamond_balance": recipient_amount, "total_received": recipient_amount}}
+        {"$inc": {"diamond_balance": total_recipient_amount, "total_received": total_recipient_amount}}
     )
+    
+    # Give sender their combo bonus
+    if sender_bonus > 0:
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$inc": {"diamond_balance": sender_bonus}}
+        )
     
     # Record transactions
     sender_tx = {
@@ -313,7 +339,7 @@ async def send_gift(request: SendGiftRequest, user: dict = Depends(get_current_u
         "user_id": user["id"],
         "type": "gift_sent",
         "amount": -total_cost,
-        "description": f"Sent {request.quantity}x {gift['name']} to {recipient['username']}",
+        "description": f"Sent {request.quantity}x {gift['name']} to {recipient['username']}" + (f" (COMBO x{combo_info['combo_count']}!)" if combo_info['combo_count'] > 1 else ""),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
@@ -321,12 +347,25 @@ async def send_gift(request: SendGiftRequest, user: dict = Depends(get_current_u
         "id": str(uuid.uuid4()),
         "user_id": request.recipient_id,
         "type": "gift_received",
-        "amount": recipient_amount,
-        "description": f"Received {request.quantity}x {gift['name']} from {user['username']}",
+        "amount": total_recipient_amount,
+        "description": f"Received {request.quantity}x {gift['name']} from {user['username']}" + (f" (COMBO x{combo_info['combo_count']}! +{recipient_bonus} bonus)" if combo_info['combo_count'] > 1 else ""),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
-    await db.transactions.insert_many([sender_tx, recipient_tx])
+    txs_to_insert = [sender_tx, recipient_tx]
+    
+    if sender_bonus > 0:
+        bonus_tx = {
+            "id": str(uuid.uuid4()),
+            "user_id": user["id"],
+            "type": "combo_bonus",
+            "amount": sender_bonus,
+            "description": f"Combo bonus x{combo_info['combo_count']} - {combo_info.get('combo_name', 'COMBO')}!",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        txs_to_insert.append(bonus_tx)
+    
+    await db.transactions.insert_many(txs_to_insert)
     
     # Record gift event for stream
     if request.stream_id:
@@ -339,11 +378,91 @@ async def send_gift(request: SendGiftRequest, user: dict = Depends(get_current_u
             "gift_image": gift["image_url"],
             "quantity": request.quantity,
             "animation_type": gift["animation_type"],
+            "combo_count": combo_info.get("combo_count", 1),
+            "combo_name": combo_info.get("combo_name", ""),
+            "combo_animation": combo_info.get("animation_type", ""),
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.gift_events.insert_one(gift_event)
     
-    return {"success": True, "new_balance": user["diamond_balance"] - total_cost}
+    # Get updated balance
+    updated_user = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    
+    return {
+        "success": True, 
+        "new_balance": updated_user["diamond_balance"],
+        "combo": combo_info if combo_info["combo_count"] > 1 else None
+    }
+
+async def check_and_update_combo(sender_id: str, recipient_id: str, gift_id: str, stream_id: str):
+    """Check for combo gifts and calculate bonuses"""
+    combo_key = f"{sender_id}_{recipient_id}_{gift_id}"
+    now = datetime.now(timezone.utc)
+    
+    # Get existing combo tracker
+    combo = await db.combos.find_one({"combo_key": combo_key}, {"_id": 0})
+    
+    # Combo window is 10 seconds
+    combo_window = timedelta(seconds=10)
+    
+    if combo and combo.get("last_gift_at"):
+        last_gift_time = datetime.fromisoformat(combo["last_gift_at"].replace("Z", "+00:00"))
+        if now - last_gift_time <= combo_window:
+            # Continue combo
+            new_count = combo["count"] + 1
+            await db.combos.update_one(
+                {"combo_key": combo_key},
+                {"$set": {"count": new_count, "last_gift_at": now.isoformat()}}
+            )
+        else:
+            # Reset combo
+            new_count = 1
+            await db.combos.update_one(
+                {"combo_key": combo_key},
+                {"$set": {"count": 1, "last_gift_at": now.isoformat()}}
+            )
+    else:
+        # New combo
+        new_count = 1
+        await db.combos.update_one(
+            {"combo_key": combo_key},
+            {"$set": {"combo_key": combo_key, "count": 1, "last_gift_at": now.isoformat()}},
+            upsert=True
+        )
+    
+    # Calculate combo bonuses
+    combo_info = calculate_combo_bonus(new_count)
+    combo_info["combo_count"] = new_count
+    
+    return combo_info
+
+def calculate_combo_bonus(combo_count: int) -> dict:
+    """Calculate bonus based on combo count"""
+    if combo_count < 2:
+        return {"combo_multiplier": 1.0, "bonus_diamonds": 0, "combo_name": "", "animation_type": ""}
+    
+    combo_tiers = {
+        2: {"multiplier": 1.1, "bonus": 10, "name": "DOUBLE HIT!", "animation": "double"},
+        3: {"multiplier": 1.25, "bonus": 30, "name": "TRIPLE LAUNCH!", "animation": "triple"},
+        4: {"multiplier": 1.4, "bonus": 50, "name": "QUAD STRIKE!", "animation": "quad"},
+        5: {"multiplier": 1.6, "bonus": 100, "name": "PENTA POWER!", "animation": "penta"},
+        6: {"multiplier": 1.8, "bonus": 150, "name": "HEXA FURY!", "animation": "hexa"},
+        7: {"multiplier": 2.0, "bonus": 250, "name": "LEGENDARY!", "animation": "legendary"},
+        8: {"multiplier": 2.5, "bonus": 400, "name": "UNSTOPPABLE!", "animation": "unstoppable"},
+        9: {"multiplier": 3.0, "bonus": 600, "name": "GODLIKE!", "animation": "godlike"},
+        10: {"multiplier": 4.0, "bonus": 1000, "name": "RCMG SUPREME!", "animation": "supreme"},
+    }
+    
+    # Cap at 10 for max tier
+    tier = min(combo_count, 10)
+    tier_data = combo_tiers.get(tier, combo_tiers[10])
+    
+    return {
+        "combo_multiplier": tier_data["multiplier"],
+        "bonus_diamonds": tier_data["bonus"],
+        "combo_name": tier_data["name"],
+        "animation_type": tier_data["animation"]
+    }
 
 # ============== LIVEKIT ROUTES ==============
 @api_router.post("/livekit/token")
