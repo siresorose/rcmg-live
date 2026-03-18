@@ -1,0 +1,177 @@
+{
+  "design_system": {
+    "identity": {
+      "name": "RCMG Live",
+      "aesthetic": "Dark Neon Cyberpunk Cityscape",
+      "tone": "High Energy, futuristic, luxurious, gamified",
+      "logo_url": "https://customer-assets.emergentagent.com/job_go-rcmg/artifacts/0aiiowdn_8130.jpg"
+    },
+    "colors": {
+      "palette": {
+        "primary": {
+          "default": "#FF0033",
+          "hover": "#CC0029",
+          "glow": "0 0 20px rgba(255, 0, 51, 0.6)"
+        },
+        "secondary": {
+          "default": "#00F0FF",
+          "hover": "#00C0CC",
+          "glow": "0 0 20px rgba(0, 240, 255, 0.6)"
+        },
+        "accent": {
+          "purple": "#BD00FF",
+          "green": "#00FF66",
+          "gold": "#FFD700"
+        },
+        "background": {
+          "main": "#050511",
+          "surface": "#0F0F1A",
+          "glass": "rgba(15, 15, 26, 0.6)"
+        },
+        "text": {
+          "primary": "#FFFFFF",
+          "secondary": "#94A3B8",
+          "muted": "#64748B"
+        },
+        "status": {
+          "success": "#00FF66",
+          "error": "#FF0033",
+          "warning": "#FFD700"
+        }
+      },
+      "gradients": {
+        "brand": "linear-gradient(135deg, #FF0033 0%, #BD00FF 100%)",
+        "cyber": "linear-gradient(90deg, #00F0FF 0%, #BD00FF 100%)",
+        "glass": "linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%)"
+      }
+    },
+    "typography": {
+      "font_family": {
+        "headings": "Orbitron, sans-serif",
+        "body": "Inter, sans-serif",
+        "mono": "JetBrains Mono, monospace"
+      },
+      "import_url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;500;700;900&family=JetBrains+Mono&display=swap",
+      "scale": {
+        "h1": "text-5xl md:text-7xl font-black tracking-tight",
+        "h2": "text-3xl md:text-5xl font-bold tracking-tight",
+        "h3": "text-2xl md:text-3xl font-bold",
+        "body_lg": "text-lg leading-relaxed",
+        "body": "text-base leading-relaxed",
+        "small": "text-sm text-slate-400"
+      }
+    },
+    "spacing": {
+      "container_padding": "p-4 md:p-8 lg:p-12",
+      "section_gap": "gap-8 md:gap-16",
+      "card_padding": "p-6"
+    },
+    "visual_enhancers": {
+      "borders": {
+        "default": "border border-white/10",
+        "glow": "border border-primary/50 shadow-[0_0_15px_rgba(255,0,51,0.3)]"
+      },
+      "shadows": {
+        "neon_red": "0 0 20px rgba(255, 0, 51, 0.4)",
+        "neon_blue": "0 0 20px rgba(0, 240, 255, 0.4)",
+        "glass": "0 8px 32px 0 rgba(0, 0, 0, 0.37)"
+      },
+      "effects": {
+        "glassmorphism": "backdrop-blur-xl bg-black/40 border border-white/10",
+        "scanlines": "background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px)"
+      }
+    },
+    "components": {
+      "Button": {
+        "variants": {
+          "primary": "bg-primary text-white hover:bg-primary/90 shadow-[0_0_15px_rgba(255,0,51,0.4)] transition-all duration-300 hover:scale-105 font-orbitron tracking-wider clip-path-slant",
+          "secondary": "bg-secondary/10 text-secondary border border-secondary/50 hover:bg-secondary/20 hover:shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all duration-300",
+          "ghost": "hover:bg-white/10 text-white transition-colors"
+        },
+        "shape": "rounded-sm"
+      },
+      "Card": {
+        "style": "bg-black/60 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-2xl"
+      },
+      "Input": {
+        "style": "bg-black/40 border-white/20 text-white placeholder:text-white/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-md"
+      }
+    },
+    "image_assets": {
+      "backgrounds": [
+        {
+          "url": "https://images.unsplash.com/photo-1765647716130-d97a1706e6e6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHw0fHxjeWJlcnB1bmslMjBuZW9uJTIwY2l0eSUyMG5pZ2h0JTIwc2t5bGluZSUyMGZ1dHVyaXN0aWN8ZW58MHx8fHwxNzczODAxMDg4fDA&ixlib=rb-4.1.0&q=85",
+          "alt": "Cyberpunk City Skyline Night",
+          "usage": "Hero Background / Main App Background"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1768500201298-d684310f38c1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwzfHxjeWJlcnB1bmslMjBuZW9uJTIwY2l0eSUyMG5pZ2h0JTIwc2t5bGluZSUyMGZ1dHVyaXN0aWN8ZW58MHx8fHwxNzczODAxMDg4fDA&ixlib=rb-4.1.0&q=85",
+          "alt": "Vibrant Neon Cityscape",
+          "usage": "Section Background / Auth Page Background"
+        }
+      ],
+      "gifts": [
+        {
+          "name": "Diamond",
+          "url": "https://images.unsplash.com/photo-1708777219976-9d140e69ce1d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwzfHwzZCUyMGljb24lMjBkaWFtb25kJTIwZ2VtJTIwc2hpbnl8ZW58MHx8fHwxNzczODAxMDg4fDA&ixlib=rb-4.1.0&q=85",
+          "cost": 10,
+          "animation_type": "pulse"
+        },
+        {
+          "name": "Sports Car",
+          "url": "https://images.unsplash.com/photo-1739613562425-c10d7bfc2352?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHwxfHwzZCUyMGljb24lMjBsdXh1cnklMjBzcG9ydHMlMjBjYXIlMjBmdXR1cmlzdGljfGVufDB8fHx8MTc3MzgwMTA4OXww&ixlib=rb-4.1.0&q=85",
+          "cost": 5000,
+          "animation_type": "drive-across"
+        },
+        {
+          "name": "Rocket",
+          "url": "https://images.unsplash.com/photo-1636819488537-a9b1ffb315ce?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NjZ8MHwxfHNlYXJjaHwxfHwzZCUyMGljb24lMjByb2NrZXQlMjBzaGlwJTIwbGF1bmNofGVufDB8fHx8MTc3MzgwMTA5MHww&ixlib=rb-4.1.0&q=85",
+          "cost": 1000,
+          "animation_type": "launch-up"
+        }
+      ],
+      "avatars": [
+        "https://images.unsplash.com/photo-1659141632957-a2cd74b8a446?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzh8MHwxfHNlYXJjaHw0fHxjeWJlcnB1bmslMjBhbmltZSUyMHN0eWxlJTIwYXZhdGFyJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzczODAxMDkxfDA&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1648526605865-e39384690567?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzh8MHwxfHNlYXJjaHwyfHxjeWJlcnB1bmslMjBhbmltZSUyMHN0eWxlJTIwYXZhdGFyJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzczODAxMDkxfDA&ixlib=rb-4.1.0&q=85"
+      ]
+    },
+    "layout_strategies": {
+      "glass_panels": "Use slightly transparent backgrounds (bg-black/60) with blur to allow the city background to peek through.",
+      "neon_borders": "Use 1px borders with low opacity (border-white/10) for structure, and glowing borders (border-primary/50) for active states.",
+      "grid_system": "Use 'Bento' grids for dashboard widgets. Gap-4 or Gap-6.",
+      "mobile_first": "All layouts must stack on mobile. Navigation shifts to bottom bar or hamburger menu."
+    },
+    "interactions": {
+      "hover_effects": "Elements should lift (-translate-y-1) and glow on hover.",
+      "gifting_animation": "When a gift is sent, it should appear center screen, scale up, and then fly to the streamer's avatar.",
+      "combo_counter": "Display a large 'x2', 'x3' counter that shakes on each increment."
+    },
+    "accessibility": {
+      "contrast": "Ensure text is always White on Dark backgrounds. Use light grey (Slate-300) for secondary text.",
+      "focus_states": "Visible focus rings with primary color.",
+      "reduced_motion": "Respect user preferences for reduced motion."
+    }
+  },
+  "implementation_instructions": {
+    "libraries": [
+      "framer-motion",
+      "lucide-react",
+      "clsx",
+      "tailwind-merge",
+      "sonner"
+    ],
+    "setup_steps": [
+      "Install required libraries: yarn add framer-motion lucide-react clsx tailwind-merge sonner",
+      "Add the Google Fonts import to index.css or index.html",
+      "Update tailwind.config.js with the new color palette and fonts",
+      "Create a reusable 'GlassCard' component",
+      "Create a 'NeonButton' component"
+    ],
+    "universal_guidelines": [
+      "Avoid default 'shadcn' look. Customize radii to be smaller (rounded-md or rounded-sm) for a tech feel.",
+      "Do NOT use pure black (#000000). Use #050511 for background.",
+      "Use 'Orbitron' font for all Headings to give the Cyberpunk identity.",
+      "Ensure all interactive elements have data-testid attributes."
+    ]
+  }
+}
