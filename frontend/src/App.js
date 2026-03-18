@@ -1060,13 +1060,21 @@ const GoLivePage = () => {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <VideoOff className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-400">Camera not available</p>
+                    <p className="text-gray-400 mb-4">Camera not available</p>
                     <button 
-                      onClick={requestMediaPermissions}
-                      className="mt-4 text-secondary hover:underline"
+                      onClick={() => {
+                        console.log("Requesting camera permissions...");
+                        requestMediaPermissions();
+                      }}
+                      className="btn-primary px-6 py-3"
+                      data-testid="enable-camera-btn"
                     >
-                      Enable Camera
+                      <Camera className="inline mr-2" size={18} />
+                      Enable Camera & Mic
                     </button>
+                    <p className="text-xs text-gray-500 mt-4">
+                      Click the button and allow access when your browser asks
+                    </p>
                   </div>
                 </div>
               )}
@@ -1074,14 +1082,20 @@ const GoLivePage = () => {
             
             {/* Device Status */}
             <div className="flex items-center gap-4">
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${cameraReady ? 'bg-accent-green/20 text-accent-green' : 'bg-primary/20 text-primary'}`}>
+              <button 
+                onClick={requestMediaPermissions}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all hover:scale-105 ${cameraReady ? 'bg-accent-green/20 text-accent-green' : 'bg-primary/20 text-primary hover:bg-primary/30'}`}
+              >
                 {cameraReady ? <Camera size={16} /> : <VideoOff size={16} />}
-                <span className="text-sm font-medium">{cameraReady ? 'Camera Ready' : 'Camera Off'}</span>
-              </div>
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${micReady ? 'bg-accent-green/20 text-accent-green' : 'bg-primary/20 text-primary'}`}>
+                <span className="text-sm font-medium">{cameraReady ? 'Camera Ready' : 'Click to Enable'}</span>
+              </button>
+              <button 
+                onClick={requestMediaPermissions}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all hover:scale-105 ${micReady ? 'bg-accent-green/20 text-accent-green' : 'bg-primary/20 text-primary hover:bg-primary/30'}`}
+              >
                 {micReady ? <Mic size={16} /> : <MicOff size={16} />}
-                <span className="text-sm font-medium">{micReady ? 'Mic Ready' : 'Mic Off'}</span>
-              </div>
+                <span className="text-sm font-medium">{micReady ? 'Mic Ready' : 'Click to Enable'}</span>
+              </button>
             </div>
           </motion.div>
 
