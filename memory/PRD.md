@@ -55,6 +55,18 @@ Build RCMG Live - a platform where users connect all their social media apps and
 - [x] 8 virtual gifts (Diamond, Rose, Heart, Crown, Rocket, Sports Car, Yacht, Private Jet)
 - [x] Prices range from 10 to 50,000 diamonds
 - [x] Gift Shop page with visual display
+- [x] **COMBO GIFT SYSTEM** - Chain gifts for bonuses:
+  - x2 DOUBLE HIT! (+10 bonus)
+  - x3 TRIPLE LAUNCH! (+30 bonus)
+  - x4 QUAD STRIKE! (+50 bonus)
+  - x5 PENTA POWER! (+100 bonus)
+  - x6 HEXA FURY! (+150 bonus)
+  - x7 LEGENDARY! (+250 bonus)
+  - x8 UNSTOPPABLE! (+400 bonus)
+  - x9 GODLIKE! (+600 bonus)
+  - x10 RCMG SUPREME! (+1000 bonus)
+- [x] Combo window: 10 seconds between gifts
+- [x] Bonus split: 50% to streamer, 50% to gifter
 
 ### Streaming
 - [x] LiveKit integration for video streaming

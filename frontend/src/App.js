@@ -25,7 +25,7 @@ import {
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
-const PAYPAL_CLIENT_ID = "AZM8QJ1U7HnIp20CnxPmRUlpleeMl6slUx-H7Sv0b31HkEMWBX6qxdxObEvF7fDtPdG0GU3SA1fsqtFt";
+const PAYPAL_CLIENT_ID = process.env.REACT_APP_PAYPAL_CLIENT_ID;
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_go-rcmg/artifacts/0aiiowdn_8130.jpg";
 
 // Auth Context
