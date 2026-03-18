@@ -875,13 +875,71 @@ const GoLivePage = () => {
   const [streamData, setStreamData] = useState(null);
   const [livekitToken, setLivekitToken] = useState(null);
   const [error, setError] = useState("");
+  const [cameraReady, setCameraReady] = useState(false);
+  const [micReady, setMicReady] = useState(false);
+  const [localStream, setLocalStream] = useState(null);
+  const videoRef = useRef(null);
+
+  // Request camera/mic permissions on mount
+  useEffect(() => {
+    requestMediaPermissions();
+    return () => {
+      // Cleanup local stream when leaving
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  const requestMediaPermissions = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+      });
+      setLocalStream(stream);
+      setCameraReady(true);
+      setMicReady(true);
+      
+      // Show preview
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.error("Media permission error:", err);
+      if (err.name === 'NotAllowedError') {
+        setError("Camera/microphone access denied. Please allow access in your browser settings.");
+      } else if (err.name === 'NotFoundError') {
+        setError("No camera or microphone found. Please connect a device.");
+      } else {
+        setError("Could not access camera/microphone. Please check your device settings.");
+      }
+    }
+  };
+
+  // Update video preview when stream changes
+  useEffect(() => {
+    if (videoRef.current && localStream) {
+      videoRef.current.srcObject = localStream;
+    }
+  }, [localStream]);
 
   const startStream = async () => {
     if (!title.trim()) {
       setError("Please enter a stream title");
       return;
     }
+    if (!cameraReady || !micReady) {
+      setError("Please allow camera and microphone access first");
+      return;
+    }
     setError("");
+
+    // Stop local preview stream
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
+    }
 
     try {
       // Create stream
@@ -904,6 +962,8 @@ const GoLivePage = () => {
       await refreshUser();
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to start stream");
+      // Re-request permissions for preview
+      requestMediaPermissions();
     }
   };
 
@@ -974,71 +1034,127 @@ const GoLivePage = () => {
     <div className="min-h-screen bg-dark-main pt-20">
       <Navigation />
       
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card rounded-xl p-8"
-        >
-          <h1 className="font-orbitron text-3xl font-bold mb-2 flex items-center gap-3">
-            <Camera className="text-primary" /> Go Live
-          </h1>
-          <p className="text-gray-400 mb-8">Start streaming to your audience across multiple platforms</p>
-
-          {user?.subscription_status === "free" && (
-            <div className="bg-secondary/10 border border-secondary/30 rounded-lg p-4 mb-6">
-              <p className="text-sm">
-                <span className="text-secondary font-bold">50 diamonds</span> will be deducted to go live.
-                <button 
-                  onClick={() => navigate('/subscription')}
-                  className="text-secondary ml-2 underline"
-                >
-                  Subscribe for unlimited streams
-                </button>
-              </p>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Camera Preview */}
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="glass-card rounded-xl p-6"
+          >
+            <h2 className="font-orbitron text-xl font-bold mb-4 flex items-center gap-2">
+              <Camera className="text-secondary" /> Camera Preview
+            </h2>
+            
+            <div className="relative aspect-video bg-black rounded-xl overflow-hidden mb-4">
+              {cameraReady ? (
+                <video 
+                  ref={videoRef}
+                  autoPlay 
+                  playsInline 
+                  muted 
+                  className="w-full h-full object-cover mirror"
+                  style={{ transform: 'scaleX(-1)' }}
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <VideoOff className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                    <p className="text-gray-400">Camera not available</p>
+                    <button 
+                      onClick={requestMediaPermissions}
+                      className="mt-4 text-secondary hover:underline"
+                    >
+                      Enable Camera
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-
-          {error && (
-            <div className="bg-primary/20 border border-primary text-primary px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
-              <AlertCircle size={18} />
-              {error}
+            
+            {/* Device Status */}
+            <div className="flex items-center gap-4">
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${cameraReady ? 'bg-accent-green/20 text-accent-green' : 'bg-primary/20 text-primary'}`}>
+                {cameraReady ? <Camera size={16} /> : <VideoOff size={16} />}
+                <span className="text-sm font-medium">{cameraReady ? 'Camera Ready' : 'Camera Off'}</span>
+              </div>
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${micReady ? 'bg-accent-green/20 text-accent-green' : 'bg-primary/20 text-primary'}`}>
+                {micReady ? <Mic size={16} /> : <MicOff size={16} />}
+                <span className="text-sm font-medium">{micReady ? 'Mic Ready' : 'Mic Off'}</span>
+              </div>
             </div>
-          )}
+          </motion.div>
 
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Stream Title *</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="input-dark"
-                placeholder="What's your stream about?"
-                data-testid="stream-title-input"
-              />
+          {/* Stream Settings */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="glass-card rounded-xl p-6"
+          >
+            <h2 className="font-orbitron text-xl font-bold mb-4 flex items-center gap-2">
+              <Play className="text-primary" /> Stream Settings
+            </h2>
+
+            {user?.subscription_status === "free" && (
+              <div className="bg-secondary/10 border border-secondary/30 rounded-lg p-4 mb-6">
+                <p className="text-sm">
+                  <span className="text-secondary font-bold">50 diamonds</span> will be deducted to go live.
+                  <button 
+                    onClick={() => navigate('/subscription')}
+                    className="text-secondary ml-2 underline"
+                  >
+                    Subscribe for unlimited streams
+                  </button>
+                </p>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-primary/20 border border-primary text-primary px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
+                <AlertCircle size={18} />
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Stream Title *</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="input-dark"
+                  placeholder="What's your stream about?"
+                  data-testid="stream-title-input"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Description (optional)</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="input-dark h-24 resize-none"
+                  placeholder="Tell viewers what to expect..."
+                  data-testid="stream-description-input"
+                />
+              </div>
+
+              <button 
+                onClick={startStream}
+                disabled={!cameraReady || !micReady}
+                className={`w-full text-lg flex items-center justify-center gap-2 py-4 rounded-lg font-orbitron tracking-wider transition-all ${
+                  cameraReady && micReady 
+                    ? 'btn-primary' 
+                    : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                }`}
+                data-testid="start-stream-btn"
+              >
+                <Play size={24} /> {cameraReady && micReady ? 'Start Streaming' : 'Enable Camera & Mic First'}
+              </button>
             </div>
-
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Description (optional)</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="input-dark h-24 resize-none"
-                placeholder="Tell viewers what to expect..."
-                data-testid="stream-description-input"
-              />
-            </div>
-
-            <button 
-              onClick={startStream}
-              className="btn-primary w-full text-lg flex items-center justify-center gap-2"
-              data-testid="start-stream-btn"
-            >
-              <Play size={24} /> Start Streaming
-            </button>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
