@@ -880,63 +880,68 @@ const GoLivePage = () => {
   const [localStream, setLocalStream] = useState(null);
   const videoRef = useRef(null);
 
-  // Request camera/mic permissions on mount
+  // Auto-start camera on mount
   useEffect(() => {
-    // Check if permissions already granted
-    const checkExistingPermissions = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true
-        });
-        setLocalStream(stream);
-        setCameraReady(true);
-        setMicReady(true);
-      } catch (err) {
-        console.log("Waiting for user to enable camera/mic");
-      }
-    };
-    checkExistingPermissions();
-    
-    return () => {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
-    };
+    startCamera();
+    return () => stopCamera();
   }, []);
 
-  const requestMediaPermissions = async () => {
+  // Connect video element when stream is ready
+  useEffect(() => {
+    if (localStream && videoRef.current) {
+      videoRef.current.srcObject = localStream;
+      videoRef.current.play().catch(e => console.log("Autoplay blocked:", e));
+    }
+  }, [localStream]);
+
+  const startCamera = async () => {
     try {
+      // Stop any existing stream first
+      stopCamera();
+      
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: { width: 1280, height: 720, facingMode: "user" },
         audio: true
       });
+      
       setLocalStream(stream);
       setCameraReady(true);
       setMicReady(true);
+      setError("");
       
-      // Show preview
+      // Directly connect to video element
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(e => console.log("Autoplay blocked:", e));
       }
     } catch (err) {
-      console.error("Media permission error:", err);
+      console.error("Camera error:", err);
+      setCameraReady(false);
+      setMicReady(false);
+      
       if (err.name === 'NotAllowedError') {
-        setError("Camera/microphone access denied. Please allow access in your browser settings.");
+        setError("Camera access denied. Click the camera icon in your browser's address bar to allow access.");
       } else if (err.name === 'NotFoundError') {
-        setError("No camera or microphone found. Please connect a device.");
+        setError("No camera found. Please connect a camera and refresh.");
+      } else if (err.name === 'NotReadableError') {
+        setError("Camera is being used by another app. Close other apps and try again.");
       } else {
-        setError("Could not access camera/microphone. Please check your device settings.");
+        setError(`Camera error: ${err.message}`);
       }
     }
   };
 
-  // Update video preview when stream changes
-  useEffect(() => {
-    if (videoRef.current && localStream) {
-      videoRef.current.srcObject = localStream;
+  const stopCamera = () => {
+    if (localStream) {
+      localStream.getTracks().forEach(track => {
+        track.stop();
+      });
+      setLocalStream(null);
     }
-  }, [localStream]);
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  };
 
   const startStream = async () => {
     if (!title.trim()) {
@@ -944,26 +949,21 @@ const GoLivePage = () => {
       return;
     }
     if (!cameraReady || !micReady) {
-      setError("Please allow camera and microphone access first");
+      setError("Camera and microphone are required to go live");
       return;
     }
     setError("");
 
-    // Stop local preview stream
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
-      setLocalStream(null);
-    }
+    // Stop local preview (LiveKit will take over)
+    stopCamera();
 
     try {
-      // Create stream
       const streamRes = await axios.post(
         `${API}/streams`,
         { title, description },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      // Get LiveKit token
       const tokenRes = await axios.post(
         `${API}/livekit/token`,
         { room_name: streamRes.data.room_name, can_publish: true },
@@ -976,8 +976,7 @@ const GoLivePage = () => {
       await refreshUser();
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to start stream");
-      // Re-request permissions for preview
-      requestMediaPermissions();
+      startCamera(); // Restart preview on error
     }
   };
 
@@ -1061,13 +1060,13 @@ const GoLivePage = () => {
             </h2>
             
             <div className="relative aspect-video bg-black rounded-xl overflow-hidden mb-4">
-              {cameraReady ? (
+              {cameraReady && localStream ? (
                 <video 
                   ref={videoRef}
                   autoPlay 
                   playsInline 
                   muted 
-                  className="w-full h-full object-cover mirror"
+                  className="w-full h-full object-cover"
                   style={{ transform: 'scaleX(-1)' }}
                 />
               ) : (
@@ -1076,10 +1075,7 @@ const GoLivePage = () => {
                     <VideoOff className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                     <p className="text-gray-400 mb-4">Camera not available</p>
                     <button 
-                      onClick={() => {
-                        console.log("Requesting camera permissions...");
-                        requestMediaPermissions();
-                      }}
+                      onClick={startCamera}
                       className="btn-primary px-6 py-3"
                       data-testid="enable-camera-btn"
                     >
@@ -1097,14 +1093,14 @@ const GoLivePage = () => {
             {/* Device Status */}
             <div className="flex items-center gap-4">
               <button 
-                onClick={requestMediaPermissions}
+                onClick={startCamera}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all hover:scale-105 ${cameraReady ? 'bg-accent-green/20 text-accent-green' : 'bg-primary/20 text-primary hover:bg-primary/30'}`}
               >
                 {cameraReady ? <Camera size={16} /> : <VideoOff size={16} />}
                 <span className="text-sm font-medium">{cameraReady ? 'Camera Ready' : 'Click to Enable'}</span>
               </button>
               <button 
-                onClick={requestMediaPermissions}
+                onClick={startCamera}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all hover:scale-105 ${micReady ? 'bg-accent-green/20 text-accent-green' : 'bg-primary/20 text-primary hover:bg-primary/30'}`}
               >
                 {micReady ? <Mic size={16} /> : <MicOff size={16} />}
